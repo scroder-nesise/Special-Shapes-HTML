@@ -1,4 +1,4 @@
-4D Polytope Sandbox · v1.3
+# 4D Polytope Sandbox · v1.3
 
 Interactive 4D geometry visualizer built with pure HTML, CSS, and JavaScript.
 Render and explore rotating hypershapes directly in your browser — including the 24-Cell, Tesseract, and Pentachoron.
@@ -8,7 +8,7 @@ Perfect for math visualization, abstract art, hypergeometry experiments, and UI 
 
 ---
 
-✨ Features
+## ✨ Features
 
 🌌 Real-time 4D polytope rendering
 
@@ -36,7 +36,7 @@ Perfect for math visualization, abstract art, hypergeometry experiments, and UI 
 
 ---
 
-🔷 Included Shapes
+## 🔷 Included Shapes
 
 Shape	Description
 
@@ -48,7 +48,7 @@ Pentachoron	4D simplex / 5-cell
 
 ---
 
-🎛 Customization Options
+## 🎛 Customization Options
 
 Shape Outline
 
@@ -112,7 +112,7 @@ Pause / resume animation
 
 ---
 
-🖥 Controls
+## 🖥 Controls
 
 Action	Control
 
@@ -124,7 +124,7 @@ Pause animation	Pause button
 
 ---
 
-🛠 Built With
+## 🛠 Built With
 
 HTML5 Canvas
 
@@ -137,7 +137,7 @@ No frameworks. No dependencies.
 
 ---
 
-🚀 Future Ideas
+## 🚀 Future Ideas
 
 Additional 4D polytopes
 
@@ -157,7 +157,7 @@ WebGL renderer
 
 ---
 
-📄 License
+## 📄 License
 
 MIT License
 
@@ -166,13 +166,13 @@ Feel free to modify, fork, and improve the project.
 
 ---
 
-👤 Author
+## 👤 Author
 
-Made by slipz
+Made by Scroder Nesise
 
 
 ---
 
-⭐ Support
+## ⭐ Support
 
 If you like the project, consider starring the repository on GitHub.
