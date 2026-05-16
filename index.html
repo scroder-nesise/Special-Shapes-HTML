@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💠</text></svg>">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4D Polytope Sandbox · v1.3</title>
+    <style>
+        :root {
+            --bg-color: #080c14;
+            --panel-bg: rgba(13, 19, 34, 0.95);
+            --accent-color: #38bdf8;
+            --text-color: #f8fafc;
+            --text-muted: #64748b;
+            --border-ui: rgba(255, 255, 255, 0.07);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0; padding: 0;
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            display: flex;
+            user-select: none;
+        }
+
+        #canvas-wrapper {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            cursor: grab;
+        }
+        #canvas-wrapper:active { cursor: grabbing; }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .ui-panel {
+            position: absolute;
+            top: 18px; left: 18px;
+            z-index: 10;
+            background: var(--panel-bg);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            padding: 18px 18px 14px;
+            border-radius: 18px;
+            width: 296px;
+            box-shadow:
+                0 28px 56px rgba(0,0,0,0.75),
+                0 0 0 1px var(--border-ui),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .ui-panel::-webkit-scrollbar { width: 3px; }
+        .ui-panel::-webkit-scrollbar-track { background: transparent; }
+        .ui-panel::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.07);
+            border-radius: 3px;
+        }
+
+        .panel-header { margin-bottom: 12px; }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0 0 1px 0;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(140deg, #fff 55%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.15;
+        }
+
+        .subtitle {
+            font-size: 0.7rem;
+            color: #4e6175;
+            margin-bottom: 0;
+            letter-spacing: 0.01em;
+            font-weight: 400;
+        }
+
+        .mode-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3px;
+            background: rgba(8, 12, 22, 0.9);
+            padding: 3px;
+            border-radius: 10px;
+            margin: 12px 0 10px;
+            border: 1px solid var(--border-ui);
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: #4e6175;
+            padding: 7px 4px;
+            font-size: 0.71rem;
+            font-weight: 600;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: 0.01em;
+        }
+        .mode-btn.active {
+            background: var(--accent-color);
+            color: #050912;
+            box-shadow: 0 2px 10px rgba(56,189,248,0.28);
+        }
+        .mode-btn:not(.active):hover { color: #7fa0b8; background: rgba(255,255,255,0.04); }
+
+        /* ── Add Shape Box ── */
+        .add-shape-box {
+            background: rgba(56,189,248,0.04);
+            border: 1px solid rgba(56,189,248,0.13);
+            border-radius: 11px;
+            padding: 10px 12px 11px;
+            margin-bottom: 10px;
+        }
+        .add-shape-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .add-shape-label {
+            font-size: 0.67rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: #6aaec8;
+        }
+        .add-shape-sub {
+            font-size: 0.57rem;
+            color: #2f4455;
+            margin-top: 2px;
+            letter-spacing: 0.02em;
+        }
+        .shape-dots {
+            display: flex;
+            gap: 7px;
+            justify-content: center;
+            margin-top: 9px;
+        }
+        .sdot {
+            width: 10px; height: 10px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.07);
+            transition: all 0.22s ease;
+            position: relative;
+        }
+        .sdot.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 8px rgba(56,189,248,0.5);
+        }
+        .sdot-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+        }
+        .sdot-label span {
+            font-size: 0.54rem;
+            color: #2d3f52;
+            letter-spacing: 0.02em;
+            width: 10px;
+            text-align: center;
+        }
+        .sdot-label span.active-lbl { color: #4a7a96; }
+
+        /* Section headers */
+        .section-hd {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.56rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: #3a4f62;
+            font-weight: 700;
+            margin: 13px 0 7px;
+        }
+        .section-hd::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, rgba(255,255,255,0.05), transparent);
+        }
+        .section-icon { font-size: 0.65rem; opacity: 0.7; }
+
+        /* Controls */
+        .cg { margin-bottom: 9px; }
+
+        .ch {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        label, .clabel {
+            font-size: 0.67rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #5a7488;
+            font-weight: 600;
+        }
+
+        .vi {
+            font-size: 0.7rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--accent-color);
+            font-weight: 600;
+            font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-color);
+            height: 4px;
+            outline: none;
+            margin: 0;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .fr { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+
+        .ci { display: flex; align-items: center; gap: 5px; }
+
+        input[type="color"] {
+            border: none;
+            background: rgba(255,255,255,0.04);
+            width: 28px; height: 22px;
+            cursor: pointer;
+            padding: 1px;
+            border-radius: 5px;
+            border: 1px solid var(--border-ui);
+        }
+
+        .cl {
+            font-size: 0.64rem;
+            color: #4e6175;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        select {
+            background: rgba(8, 12, 22, 0.9);
+            color: var(--text-color);
+            border: 1px solid var(--border-ui);
+            padding: 6px 26px 6px 9px;
+            border-radius: 7px;
+            width: 100%;
+            outline: none;
+            font-size: 0.76rem;
+            transition: border-color 0.2s;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5' viewBox='0 0 9 5'%3E%3Cpath d='M.5.5l4 4 4-4' stroke='%233a4f62' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center;
+        }
+        select:hover { border-color: rgba(56,189,248,0.25); }
+
+        button.abtn {
+            background: rgba(56,189,248,0.05);
+            color: var(--accent-color);
+            border: 1px solid rgba(56,189,248,0.15);
+            padding: 7px 12px;
+            border-radius: 8px;
+            width: 100%;
+            outline: none;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.18s;
+            letter-spacing: 0.01em;
+            font-family: inherit;
+        }
+        button.abtn:hover { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.3); }
+        button.abtn.paused {
+            background: rgba(251,191,36,0.06);
+            color: #fbbf24;
+            border-color: rgba(251,191,36,0.18);
+        }
+        button.abtn.paused:hover { background: rgba(251,191,36,0.12); }
+
+        /* Toggle switch */
+        .tr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 7px;
+            padding: 1px 0;
+        }
+        .tlabel {
+            font-size: 0.67rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #5a7488;
+            font-weight: 600;
+        }
+        .tsw {
+            position: relative;
+            display: inline-block;
+            width: 32px; height: 18px;
+            flex-shrink: 0;
+        }
+        .tsw input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .tsl {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.07);
+            border-radius: 18px;
+            transition: 0.2s;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .tsl:before {
+            position: absolute;
+            content: "";
+            height: 12px; width: 12px;
+            left: 2px; top: 2px;
+            background: rgba(255,255,255,0.35);
+            border-radius: 50%;
+            transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        input:checked + .tsl { background: var(--accent-color); border-color: var(--accent-color); }
+        input:checked + .tsl:before { transform: translateX(14px); background: white; }
+
+        .sub-panel {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-ui);
+            border-radius: 8px;
+            padding: 8px 9px;
+            margin-bottom: 8px;
+        }
+
+        .stats-box {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-ui);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+        .stat-item {
+            background: rgba(8,12,22,0.7);
+            padding: 6px 4px;
+            border-radius: 7px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .stat-num {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-lbl {
+            font-size: 0.55rem;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-top: 1px;
+        }
+
+        .branding {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+        .brand-svg { opacity: 0.45; flex-shrink: 0; }
+        .brand-name {
+            font-size: 0.62rem;
+            color: #2d3f52;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .brand-ver {
+            font-size: 0.54rem;
+            color: #1e2d3a;
+            background: rgba(255,255,255,0.025);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.04);
+            font-family: 'SF Mono', monospace;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 18px; right: 18px;
+            background: rgba(8,12,22,0.7);
+            backdrop-filter: blur(10px);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            color: #2d4055;
+            z-index: 10;
+            pointer-events: none;
+            border: 1px solid var(--border-ui);
+        }
+
+        @media (max-width: 480px) {
+            .ui-panel {
+                top: auto; bottom: 18px;
+                left: 50%; transform: translateX(-50%);
+                width: 90%; max-height: 52vh;
+            }
+            .instructions { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvas-wrapper">
+    <canvas id="polytopeCanvas"></canvas>
+</div>
+
+<div class="ui-panel">
+    <div class="panel-header">
+        <h1 id="titleDisplay">Icositetrachoron</h1>
+        <div class="subtitle" id="subtitleDisplay">Regular 24-Cell Hyper-Solids</div>
+    </div>
+
+    <div class="mode-container">
+        <button class="mode-btn active" id="btn24">24-Cell</button>
+        <button class="mode-btn" id="btn4D">Tesseract</button>
+        <button class="mode-btn" id="btn5C">5-Cell</button>
+    </div>
+
+    <!-- ── ADD 1 SHAPE ── -->
+    <div class="add-shape-box">
+        <div class="add-shape-header">
+            <div>
+                <div class="add-shape-label">Add 1 Shape</div>
+                <div class="add-shape-sub">Twin mode · all copies share settings</div>
+            </div>
+            <span class="vi" id="extraShapesVal">Off</span>
+        </div>
+        <input type="range" id="extraShapesSlider" min="0" max="3" value="0" step="1">
+        <div class="shape-dots">
+            <span class="sdot active" id="sdot0"></span>
+            <span class="sdot" id="sdot1"></span>
+            <span class="sdot" id="sdot2"></span>
+            <span class="sdot" id="sdot3"></span>
+        </div>
+        <div class="sdot-label">
+            <span class="active-lbl" id="slbl0">1</span>
+            <span id="slbl1">2</span>
+            <span id="slbl2">3</span>
+            <span id="slbl3">4</span>
+        </div>
+    </div>
+
+    <!-- ── SHAPE OUTLINE ── -->
+    <div class="section-hd"><span class="section-icon">◇</span>Shape Outline</div>
+
+    <div class="cg">
+        <div class="ch"><label>Colors</label></div>
+        <div class="fr">
+            <div class="ci">
+                <input type="color" id="outlineColorPicker" value="#38bdf8">
+                <span class="cl">Edge</span>
+            </div>
+            <div class="ci">
+                <input type="color" id="vertexColorPicker" value="#38bdf8">
+                <span class="cl">Node</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="cg">
+        <div class="ch"><label for="edgeStyleSelect">Edge Style</label></div>
+        <select id="edgeStyleSelect">
+            <option value="solid">— Solid</option>
+            <option value="dashed">- - Dashed</option>
+            <option value="dotted">· · · Dotted</option>
+            <option value="dashdot">-·- Dash-Dot</option>
+            <option value="double">═ Double Line</option>
+        </select>
+    </div>
+
+    <div class="cg">
+        <div class="ch">
+            <label for="thicknessSlider">Edge Thickness</label>
+            <span class="vi" id="thicknessVal">1.2px</span>
+        </div>
+        <input type="range" id="thicknessSlider" min="5" max="50" value="12">
+    </div>
+
+    <div class="cg">
+        <div class="ch">
+            <label for="opacitySlider">Edge Opacity</label>
+            <span class="vi" id="opacityVal">35%</span>
+        </div>
+        <input type="range" id="opacitySlider" min="5" max="100" value="35">
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Node Outline Ring</span>
+        <label class="tsw">
+            <input type="checkbox" id="nodeOutlineToggle">
+            <span class="tsl"></span>
+        </label>
+    </div>
+    <div id="nodeOutlineGroup" style="display:none;">
+        <div class="sub-panel">
+            <div class="fr" style="margin-bottom:7px;">
+                <div class="ci">
+                    <input type="color" id="nodeOutlineColorPicker" value="#ffffff">
+                    <span class="cl">Ring Color</span>
+                </div>
+            </div>
+            <div class="ch" style="margin-bottom:4px;">
+                <label>Ring Width</label>
+                <span class="vi" id="nodeRingWidthVal">2px</span>
+            </div>
+            <input type="range" id="nodeOutlineWidthSlider" min="1" max="10" value="2">
+        </div>
+    </div>
+
+    <!-- ── NODES ── -->
+    <div class="section-hd"><span class="section-icon">●</span>Nodes</div>
+
+    <div class="cg">
+        <div class="ch">
+            <label for="nodeSizeSlider">Node Size</label>
+            <span class="vi" id="nodeSizeVal">1.0×</span>
+        </div>
+        <input type="range" id="nodeSizeSlider" min="1" max="60" value="10">
+    </div>
+
+    <div class="cg">
+        <div class="ch"><label for="nodeShapeSelect">Node Shape</label></div>
+        <select id="nodeShapeSelect">
+            <option value="circle">● Circle</option>
+            <option value="square">■ Square</option>
+            <option value="diamond">◆ Diamond</option>
+            <option value="star">★ Star</option>
+            <option value="cross">✚ Cross</option>
+        </select>
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Show Nodes</span>
+        <label class="tsw">
+            <input type="checkbox" id="showNodesToggle" checked>
+            <span class="tsl"></span>
+        </label>
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Show Edges</span>
+        <label class="tsw">
+            <input type="checkbox" id="showEdgesToggle" checked>
+            <span class="tsl"></span>
+        </label>
+    </div>
+
+    <!-- ── ANIMATION ── -->
+    <div class="section-hd"><span class="section-icon">⟳</span>Animation</div>
+
+    <div class="cg" style="margin-bottom:7px;">
+        <button class="abtn" id="btnPauseResume">⏸ Pause Animation</button>
+    </div>
+
+    <div class="cg">
+        <div class="ch">
+            <label for="speedSlider">Primary Speed</label>
+            <span class="vi" id="speedVal">1.0×</span>
+        </div>
+        <input type="range" id="speedSlider" min="0" max="50" value="10">
+    </div>
+
+    <div class="cg">
+        <div class="ch">
+            <label for="speed2Slider">Secondary Speed</label>
+            <span class="vi" id="speed2Val">0.6×</span>
+        </div>
+        <input type="range" id="speed2Slider" min="0" max="30" value="6">
+    </div>
+
+    <div class="cg">
+        <div class="ch"><label for="rotationTypeSelect">4D Rotation Plane</label></div>
+        <select id="rotationTypeSelect">
+            <option value="XW_YZ">XW &amp; YZ Hyperplanes (Dual)</option>
+            <option value="XW">XW Plane Only</option>
+            <option value="ZW">ZW Plane Only</option>
+            <option value="YW">YW Plane Only</option>
+        </select>
+    </div>
+
+    <!-- ── PROJECTION ── -->
+    <div class="section-hd"><span class="section-icon">⊡</span>Projection</div>
+
+    <div class="cg">
+        <div class="ch"><label for="projectionSelect">Mode</label></div>
+        <select id="projectionSelect">
+            <option value="perspective">Perspective (4D → 3D → 2D)</option>
+            <option value="ortho">Orthographic Parallel Matrix</option>
+        </select>
+    </div>
+
+    <div class="cg">
+        <div class="ch">
+            <label for="scaleSlider">Scale Boundary</label>
+            <span class="vi" id="scaleVal">160</span>
+        </div>
+        <input type="range" id="scaleSlider" min="40" max="720" value="160">
+    </div>
+
+    <!-- ── VISUAL EFFECTS ── -->
+    <div class="section-hd"><span class="section-icon">✦</span>Visual Effects</div>
+
+    <div class="cg">
+        <div class="ch"><label>Environment Colors</label></div>
+        <div class="fr">
+            <div class="ci">
+                <input type="color" id="bgColorPicker" value="#080c14">
+                <span class="cl">Background</span>
+            </div>
+            <div class="ci">
+                <input type="color" id="accentUIPicker" value="#38bdf8">
+                <span class="cl">UI Accent</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Glow / Bloom</span>
+        <label class="tsw">
+            <input type="checkbox" id="glowToggle" checked>
+            <span class="tsl"></span>
+        </label>
+    </div>
+    <div id="glowGroup">
+        <div class="cg">
+            <div class="ch">
+                <label for="glowSlider">Glow Intensity</label>
+                <span class="vi" id="glowVal">15px</span>
+            </div>
+            <input type="range" id="glowSlider" min="0" max="70" value="15">
+        </div>
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Depth Fog</span>
+        <label class="tsw">
+            <input type="checkbox" id="depthFogToggle">
+            <span class="tsl"></span>
+        </label>
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Starfield Background</span>
+        <label class="tsw">
+            <input type="checkbox" id="starsToggle" checked>
+            <span class="tsl"></span>
+        </label>
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Motion Trails</span>
+        <label class="tsw">
+            <input type="checkbox" id="trailsToggle">
+            <span class="tsl"></span>
+        </label>
+    </div>
+
+    <div class="tr">
+        <span class="tlabel">Grid Overlay</span>
+        <label class="tsw">
+            <input type="checkbox" id="gridToggle">
+            <span class="tsl"></span>
+        </label>
+    </div>
+
+    <div class="cg" style="margin-top:10px; margin-bottom:5px;">
+        <button class="abtn" id="btnResetView">↺ Reset View Orientation</button>
+    </div>
+
+    <div class="stats-box">
+        <div class="stat-item">
+            <div class="stat-num" id="statCells">24</div>
+            <div class="stat-lbl">Cells</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num" id="statEdges">96</div>
+            <div class="stat-lbl">Edges</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num" id="statVerts">24</div>
+            <div class="stat-lbl">Verts</div>
+        </div>
+    </div>
+
+    <div class="branding">
+        <svg class="brand-svg" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="6" width="7" height="7" stroke="#3a4f62" stroke-width="1.1" rx="0.5"/>
+            <rect x="9.5" y="3" width="7" height="7" stroke="#3a4f62" stroke-width="1.1" rx="0.5"/>
+            <line x1="1.5" y1="6" x2="9.5" y2="3" stroke="#3a4f62" stroke-width="0.9"/>
+            <line x1="8.5" y1="6" x2="16.5" y2="3" stroke="#3a4f62" stroke-width="0.9"/>
+            <line x1="8.5" y1="13" x2="16.5" y2="10" stroke="#3a4f62" stroke-width="0.9"/>
+            <line x1="1.5" y1="13" x2="9.5" y2="10" stroke="#3a4f62" stroke-width="0.9"/>
+        </svg>
+        <span class="brand-name">PolytopeViz</span>
+        <span class="brand-ver">4D · v1.3</span>
+    </div>
+</div>
+
+<div class="instructions">Drag to orbit &middot; All controls in panel</div>
+
+<script>
+    const canvas = document.getElementById('polytopeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // DOM refs
+    const btn24 = document.getElementById('btn24');
+    const btn4D = document.getElementById('btn4D');
+    const btn5C = document.getElementById('btn5C');
+    const titleDisplay = document.getElementById('titleDisplay');
+    const subtitleDisplay = document.getElementById('subtitleDisplay');
+    const vertexColorPicker = document.getElementById('vertexColorPicker');
+    const outlineColorPicker = document.getElementById('outlineColorPicker');
+    const speedSlider = document.getElementById('speedSlider');
+    const speedVal = document.getElementById('speedVal');
+    const speed2Slider = document.getElementById('speed2Slider');
+    const speed2Val = document.getElementById('speed2Val');
+    const scaleSlider = document.getElementById('scaleSlider');
+    const scaleVal = document.getElementById('scaleVal');
+    const thicknessSlider = document.getElementById('thicknessSlider');
+    const thicknessVal = document.getElementById('thicknessVal');
+    const opacitySlider = document.getElementById('opacitySlider');
+    const opacityVal = document.getElementById('opacityVal');
+    const projectionSelect = document.getElementById('projectionSelect');
+    const rotationTypeSelect = document.getElementById('rotationTypeSelect');
+    const edgeStyleSelect = document.getElementById('edgeStyleSelect');
+    const nodeShapeSelect = document.getElementById('nodeShapeSelect');
+    const nodeSizeSlider = document.getElementById('nodeSizeSlider');
+    const nodeSizeVal = document.getElementById('nodeSizeVal');
+    const btnResetView = document.getElementById('btnResetView');
+    const btnPauseResume = document.getElementById('btnPauseResume');
+    const statCells = document.getElementById('statCells');
+    const statEdges = document.getElementById('statEdges');
+    const statVerts = document.getElementById('statVerts');
+    const bgColorPicker = document.getElementById('bgColorPicker');
+    const accentUIPicker = document.getElementById('accentUIPicker');
+    const glowToggle = document.getElementById('glowToggle');
+    const glowSlider = document.getElementById('glowSlider');
+    const glowVal = document.getElementById('glowVal');
+    const glowGroup = document.getElementById('glowGroup');
+    const depthFogToggle = document.getElementById('depthFogToggle');
+    const starsToggle = document.getElementById('starsToggle');
+    const trailsToggle = document.getElementById('trailsToggle');
+    const gridToggle = document.getElementById('gridToggle');
+    const showNodesToggle = document.getElementById('showNodesToggle');
+    const showEdgesToggle = document.getElementById('showEdgesToggle');
+    const nodeOutlineToggle = document.getElementById('nodeOutlineToggle');
+    const nodeOutlineGroup = document.getElementById('nodeOutlineGroup');
+    const nodeOutlineColorPicker = document.getElementById('nodeOutlineColorPicker');
+    const nodeOutlineWidthSlider = document.getElementById('nodeOutlineWidthSlider');
+    const nodeRingWidthVal = document.getElementById('nodeRingWidthVal');
+    const extraShapesSlider = document.getElementById('extraShapesSlider');
+    const extraShapesVal = document.getElementById('extraShapesVal');
+
+    // State
+    let currentMode = '24cell';
+    let nodeColor = '#38bdf8';
+    let lineColor = '#38bdf8';
+    let autoSpeed = 0.01;
+    let autoSpeedRatio = 0.6;
+    let baseScale = 160;
+    let edgeThickness = 1.2;
+    let edgeOpacity = 0.35;
+    let projectionMode = 'perspective';
+    let rotationPlaneType = 'XW_YZ';
+    let edgeStyle = 'solid';
+    let nodeShape = 'circle';
+    let nodeSizeMultiplier = 1.0;
+    let isAnimating = true;
+    let bgColor = '#080c14';
+    let glowEnabled = true;
+    let glowIntensity = 15;
+    let depthFogEnabled = false;
+    let starsEnabled = true;
+    let trailsEnabled = false;
+    let gridEnabled = false;
+    let showNodes = true;
+    let showEdges = true;
+    let nodeOutlineEnabled = false;
+    let nodeOutlineColor = '#ffffff';
+    let nodeOutlineWidth = 2;
+    let extraShapes = 0; // 0 = Off (1 shape total), max 3 extra (4 total)
+
+    let vertices = [], edges = [];
+    let angle4D = 0, rotX3D = 0.5, rotY3D = 0.5;
+
+    // Stars
+    const NUM_STARS = 200;
+    const stars = Array.from({length: NUM_STARS}, () => ({
+        x: Math.random(), y: Math.random(),
+        r: Math.random() * 1.3 + 0.2,
+        alpha: Math.random() * 0.45 + 0.08,
+        phase: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.6 + 0.2
+    }));
+
+    // ── 4D phase offsets for each instance (evenly spread so each twin looks distinct)
+    const PHASE_OFFSETS = [0, Math.PI * 0.67, Math.PI * 1.33, Math.PI * 1.95];
+
+    // ── Screen position layouts for 1–4 shapes (as [x, y] fractions of spread unit)
+    // Spread unit is computed at render time from canvas size
+    const LAYOUTS = [
+        [[0, 0]],                                                         // 1 shape
+        [[-1, 0], [1, 0]],                                                // 2 shapes
+        [[0, -0.85], [-1, 0.55], [1, 0.55]],                             // 3 shapes
+        [[-0.9, -0.6], [0.9, -0.6], [-0.9, 0.6], [0.9, 0.6]]            // 4 shapes
+    ];
+
+    // ── Scale factors so shapes fit comfortably when multiplied
+    const SCALE_FACTORS = [1.0, 0.70, 0.60, 0.52];
+
+    // ── Update dot indicators ──────────────────────────────────────────────────
+    function updateShapeDots(n) {
+        for (let i = 0; i < 4; i++) {
+            const dot = document.getElementById(`sdot${i}`);
+            const lbl = document.getElementById(`slbl${i}`);
+            const on = i <= n;
+            dot.classList.toggle('active', on);
+            lbl.classList.toggle('active-lbl', on);
+        }
+        const labels = ['Off', '+1', '+2', '+3'];
+        extraShapesVal.textContent = labels[n];
+    }
+
+    // ── Event Listeners ───────────────────────────────────────────────────────
+    extraShapesSlider.addEventListener('input', e => {
+        extraShapes = parseInt(e.target.value);
+        updateShapeDots(extraShapes);
+    });
+
+    vertexColorPicker.addEventListener('input', e => { nodeColor = e.target.value; });
+    outlineColorPicker.addEventListener('input', e => { lineColor = e.target.value; });
+
+    speedSlider.addEventListener('input', e => {
+        autoSpeed = parseFloat(e.target.value) / 1000;
+        speedVal.textContent = (parseFloat(e.target.value) / 10).toFixed(1) + '×';
+    });
+    speed2Slider.addEventListener('input', e => {
+        autoSpeedRatio = parseFloat(e.target.value) / 10;
+        speed2Val.textContent = autoSpeedRatio.toFixed(1) + '×';
+    });
+    scaleSlider.addEventListener('input', e => {
+        baseScale = parseFloat(e.target.value);
+        scaleVal.textContent = baseScale;
+    });
+    thicknessSlider.addEventListener('input', e => {
+        edgeThickness = parseFloat(e.target.value) / 10;
+        thicknessVal.textContent = edgeThickness.toFixed(1) + 'px';
+    });
+    opacitySlider.addEventListener('input', e => {
+        edgeOpacity = parseFloat(e.target.value) / 100;
+        opacityVal.textContent = e.target.value + '%';
+    });
+    projectionSelect.addEventListener('change', e => projectionMode = e.target.value);
+    rotationTypeSelect.addEventListener('change', e => rotationPlaneType = e.target.value);
+    edgeStyleSelect.addEventListener('change', e => edgeStyle = e.target.value);
+    nodeShapeSelect.addEventListener('change', e => nodeShape = e.target.value);
+    nodeSizeSlider.addEventListener('input', e => {
+        nodeSizeMultiplier = parseFloat(e.target.value) / 10;
+        nodeSizeVal.textContent = nodeSizeMultiplier.toFixed(1) + '×';
+    });
+
+    btnResetView.addEventListener('click', () => { rotX3D = 0.5; rotY3D = 0.5; });
+    btnPauseResume.addEventListener('click', () => {
+        isAnimating = !isAnimating;
+        btnPauseResume.textContent = isAnimating ? '⏸ Pause Animation' : '▶ Resume Animation';
+        btnPauseResume.classList.toggle('paused', !isAnimating);
+        if (isAnimating) animate();
+    });
+
+    bgColorPicker.addEventListener('input', e => {
+        bgColor = e.target.value;
+        document.documentElement.style.setProperty('--bg-color', bgColor);
+        document.body.style.backgroundColor = bgColor;
+    });
+    accentUIPicker.addEventListener('input', e => {
+        document.documentElement.style.setProperty('--accent-color', e.target.value);
+    });
+
+    glowToggle.addEventListener('change', e => {
+        glowEnabled = e.target.checked;
+        glowGroup.style.display = glowEnabled ? '' : 'none';
+    });
+    glowSlider.addEventListener('input', e => {
+        glowIntensity = parseFloat(e.target.value);
+        glowVal.textContent = glowIntensity + 'px';
+    });
+    depthFogToggle.addEventListener('change', e => depthFogEnabled = e.target.checked);
+    starsToggle.addEventListener('change', e => starsEnabled = e.target.checked);
+    trailsToggle.addEventListener('change', e => trailsEnabled = e.target.checked);
+    gridToggle.addEventListener('change', e => gridEnabled = e.target.checked);
+    showNodesToggle.addEventListener('change', e => showNodes = e.target.checked);
+    showEdgesToggle.addEventListener('change', e => showEdges = e.target.checked);
+
+    nodeOutlineToggle.addEventListener('change', e => {
+        nodeOutlineEnabled = e.target.checked;
+        nodeOutlineGroup.style.display = nodeOutlineEnabled ? '' : 'none';
+    });
+    nodeOutlineColorPicker.addEventListener('input', e => nodeOutlineColor = e.target.value);
+    nodeOutlineWidthSlider.addEventListener('input', e => {
+        nodeOutlineWidth = parseInt(e.target.value);
+        nodeRingWidthVal.textContent = nodeOutlineWidth + 'px';
+    });
+
+    // ── Geometry ─────────────────────────────────────────────────────────────
+    function loadGeometry() {
+        vertices = []; edges = [];
+        if (currentMode === '24cell') {
+            for (let i = 0; i < 4; i++)
+                for (let v of [1, -1]) {
+                    let vert = [0,0,0,0]; vert[i] = v; vertices.push(vert);
+                }
+            for (let x of [0.5,-0.5]) for (let y of [0.5,-0.5]) for (let z of [0.5,-0.5]) for (let w of [0.5,-0.5])
+                vertices.push([x,y,z,w]);
+            for (let i = 0; i < vertices.length; i++)
+                for (let j = i+1; j < vertices.length; j++) {
+                    const d = vertices[i].reduce((s,v,k) => s + (v - vertices[j][k])**2, 0);
+                    if (Math.abs(d - 1) < 0.01) edges.push([i,j]);
+                }
+        } else if (currentMode === 'tesseract') {
+            for (let x of [1,-1]) for (let y of [1,-1]) for (let z of [1,-1]) for (let w of [1,-1])
+                vertices.push([x,y,z,w]);
+            for (let i = 0; i < vertices.length; i++)
+                for (let j = i+1; j < vertices.length; j++) {
+                    const d = vertices[i].reduce((s,v,k) => s + (v - vertices[j][k])**2, 0);
+                    if (Math.abs(d - 4) < 0.01) edges.push([i,j]);
+                }
+        } else if (currentMode === 'pentachoron') {
+            vertices = [
+                [ 1/Math.sqrt(2),  1/Math.sqrt(6),  1/Math.sqrt(12),  1/Math.sqrt(20)],
+                [-1/Math.sqrt(2),  1/Math.sqrt(6),  1/Math.sqrt(12),  1/Math.sqrt(20)],
+                [0,               -2/Math.sqrt(6),  1/Math.sqrt(12),  1/Math.sqrt(20)],
+                [0,                0,              -3/Math.sqrt(12),  1/Math.sqrt(20)],
+                [0,                0,               0,               -4/Math.sqrt(20)]
+            ];
+            for (let i = 0; i < 5; i++)
+                for (let j = i+1; j < 5; j++) edges.push([i,j]);
+        }
+    }
+
+    function switchMode(mode) {
+        if (currentMode === mode) return;
+        currentMode = mode;
+        [btn24,btn4D,btn5C].forEach(b => b.classList.remove('active'));
+        if (mode === '24cell') {
+            btn24.classList.add('active');
+            titleDisplay.textContent = "Icositetrachoron";
+            subtitleDisplay.textContent = "Regular 24-Cell Hyper-Solids";
+            scaleSlider.value = 160; baseScale = 160;
+            statCells.textContent="24"; statEdges.textContent="96"; statVerts.textContent="24";
+        } else if (mode === 'tesseract') {
+            btn4D.classList.add('active');
+            titleDisplay.textContent = "Tesseract";
+            subtitleDisplay.textContent = "Regular 4D Hypercube (8-Cell)";
+            scaleSlider.value = 110; baseScale = 110;
+            statCells.textContent="8"; statEdges.textContent="32"; statVerts.textContent="16";
+        } else if (mode === 'pentachoron') {
+            btn5C.classList.add('active');
+            titleDisplay.textContent = "Pentachoron";
+            subtitleDisplay.textContent = "4D Regular Simplex (5-Cell Hyper-Pyramid)";
+            scaleSlider.value = 240; baseScale = 240;
+            statCells.textContent="5"; statEdges.textContent="10"; statVerts.textContent="5";
+        }
+        scaleVal.textContent = scaleSlider.value;
+        loadGeometry();
+    }
+
+    btn24.addEventListener('click', () => switchMode('24cell'));
+    btn4D.addEventListener('click', () => switchMode('tesseract'));
+    btn5C.addEventListener('click', () => switchMode('pentachoron'));
+
+    function resize() {
+        canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+        canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    loadGeometry();
+
+    // ── Drag ─────────────────────────────────────────────────────────────────
+    let isDragging = false, prevPos = {x:0,y:0};
+    const startDrag = (x,y) => { isDragging=true; prevPos={x,y}; };
+    const moveDrag = (x,y) => {
+        if (!isDragging) return;
+        rotY3D += (x - prevPos.x) * 0.006;
+        rotX3D += (y - prevPos.y) * 0.006;
+        prevPos = {x,y};
+    };
+    const stopDrag = () => isDragging = false;
+    canvas.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
+    window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+    window.addEventListener('mouseup', stopDrag);
+    canvas.addEventListener('touchstart', e => { if(e.touches.length===1) startDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+    window.addEventListener('touchmove', e => { if(e.touches.length===1) moveDrag(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+    window.addEventListener('touchend', stopDrag);
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const hexToRgb = hex => {
+        const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '56,189,248';
+    };
+
+    const getLineDash = (style, t) => {
+        switch(style) {
+            case 'dashed':  return [t*4, t*3];
+            case 'dotted':  return [t*0.5, t*2.5];
+            case 'dashdot': return [t*5, t*2, t*0.5, t*2];
+            default:        return [];
+        }
+    };
+
+    function drawNode(x, y, r) {
+        ctx.beginPath();
+        switch(nodeShape) {
+            case 'square':
+                ctx.rect(x-r, y-r, r*2, r*2);
+                break;
+            case 'diamond':
+                ctx.moveTo(x, y-r*1.4);
+                ctx.lineTo(x+r, y);
+                ctx.lineTo(x, y+r*1.4);
+                ctx.lineTo(x-r, y);
+                ctx.closePath();
+                break;
+            case 'star': {
+                for (let i=0; i<5; i++) {
+                    const oa = (i*Math.PI*2/5) - Math.PI/2;
+                    const ia = oa + Math.PI/5;
+                    const ox = x+r*1.25*Math.cos(oa), oy = y+r*1.25*Math.sin(oa);
+                    const ix = x+r*0.5*Math.cos(ia),  iy = y+r*0.5*Math.sin(ia);
+                    if (i===0) ctx.moveTo(ox,oy); else ctx.lineTo(ox,oy);
+                    ctx.lineTo(ix,iy);
+                }
+                ctx.closePath();
+                break;
+            }
+            case 'cross': {
+                const arm = r*0.38;
+                ctx.moveTo(x-arm, y-r*1.1);
+                ctx.lineTo(x+arm, y-r*1.1);
+                ctx.lineTo(x+arm, y-arm);
+                ctx.lineTo(x+r*1.1, y-arm);
+                ctx.lineTo(x+r*1.1, y+arm);
+                ctx.lineTo(x+arm, y+arm);
+                ctx.lineTo(x+arm, y+r*1.1);
+                ctx.lineTo(x-arm, y+r*1.1);
+                ctx.lineTo(x-arm, y+arm);
+                ctx.lineTo(x-r*1.1, y+arm);
+                ctx.lineTo(x-r*1.1, y-arm);
+                ctx.lineTo(x-arm, y-arm);
+                ctx.closePath();
+                break;
+            }
+            default:
+                ctx.arc(x, y, r, 0, Math.PI*2);
+        }
+    }
+
+    function drawGrid(width, height) {
+        const spacing = 60;
+        ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+        ctx.lineWidth = 0.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        for (let x=0; x<width; x+=spacing) { ctx.moveTo(x,0); ctx.lineTo(x,height); }
+        for (let y=0; y<height; y+=spacing) { ctx.moveTo(0,y); ctx.lineTo(width,y); }
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(width/2,0); ctx.lineTo(width/2,height);
+        ctx.moveTo(0,height/2); ctx.lineTo(width,height/2);
+        ctx.stroke();
+    }
+
+    // ── Project & draw one instance ───────────────────────────────────────────
+    // phaseAngle = angle4D + per-instance phase offset
+    // cx, cy    = screen centre for this instance
+    // instScale = baseScale * per-count scale factor
+    function drawInstance(phaseAngle, cx, cy, instScale) {
+        const cosA = Math.cos(phaseAngle),               sinA = Math.sin(phaseAngle);
+        const cosB = Math.cos(phaseAngle*autoSpeedRatio), sinB = Math.sin(phaseAngle*autoSpeedRatio);
+        const cosX = Math.cos(rotX3D), sinX = Math.sin(rotX3D);
+        const cosY = Math.cos(rotY3D), sinY = Math.sin(rotY3D);
+
+        const pts = vertices.map(v => {
+            let [x,y,z,w] = v;
+            let x4=x, y4=y, z4=z, w4=w;
+
+            if (rotationPlaneType === 'XW_YZ') {
+                x4 = x*cosA - w*sinA; w4 = x*sinA + w*cosA;
+                y4 = y*cosB - z*sinB; z4 = y*sinB + z*cosB;
+            } else if (rotationPlaneType === 'XW') {
+                x4 = x*cosA - w*sinA; w4 = x*sinA + w*cosA;
+            } else if (rotationPlaneType === 'ZW') {
+                z4 = z*cosA - w*sinA; w4 = z*sinA + w*cosA;
+            } else if (rotationPlaneType === 'YW') {
+                y4 = y*cosA - w*sinA; w4 = y*sinA + w*cosA;
+            }
+
+            let x3, y3, z3;
+            if (projectionMode === 'perspective') {
+                const d4 = currentMode==='tesseract' ? 2.4 : (currentMode==='pentachoron' ? 2.2 : 1.9);
+                const f4 = 1 / (d4 - w4);
+                x3=x4*f4; y3=y4*f4; z3=z4*f4;
+            } else {
+                x3=x4; y3=y4; z3=z4;
+            }
+
+            let xR = x3*cosY - z3*sinY;
+            let zR = x3*sinY + z3*cosY;
+            let yR = y3*cosX - zR*sinX;
+            let fZ = y3*sinX + zR*cosX;
+
+            const f2 = 1 / (3.0 - fZ*0.45);
+            return { x: cx + xR*instScale*f2, y: cy + yR*instScale*f2, depth: fZ };
+        });
+
+        const rgbLine    = hexToRgb(lineColor);
+        const rgbNode    = hexToRgb(nodeColor);
+        const rgbOutline = hexToRgb(nodeOutlineColor);
+
+        // Draw edges
+        if (showEdges) {
+            if (glowEnabled) { ctx.shadowBlur = glowIntensity; ctx.shadowColor = lineColor; }
+            else ctx.shadowBlur = 0;
+
+            ctx.setLineDash(edgeStyle !== 'double' ? getLineDash(edgeStyle, edgeThickness) : []);
+            ctx.lineWidth = edgeThickness;
+
+            for (const [i,j] of edges) {
+                const p0 = pts[i], p1 = pts[j];
+                let op = edgeOpacity;
+                if (depthFogEnabled) {
+                    const avgD = (p0.depth + p1.depth) / 2;
+                    op *= Math.max(0.06, 1 - avgD * 0.5);
+                }
+                ctx.strokeStyle = `rgba(${rgbLine},${op})`;
+
+                if (edgeStyle === 'double') {
+                    const dx=p1.x-p0.x, dy=p1.y-p0.y;
+                    const len=Math.sqrt(dx*dx+dy*dy);
+                    if (len > 0) {
+                        const nx=-dy/len*edgeThickness*0.7, ny=dx/len*edgeThickness*0.7;
+                        ctx.lineWidth = edgeThickness * 0.55;
+                        ctx.beginPath(); ctx.moveTo(p0.x+nx,p0.y+ny); ctx.lineTo(p1.x+nx,p1.y+ny); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(p0.x-nx,p0.y-ny); ctx.lineTo(p1.x-nx,p1.y-ny); ctx.stroke();
+                    }
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(p0.x, p0.y);
+                    ctx.lineTo(p1.x, p1.y);
+                    ctx.stroke();
+                }
+            }
+            ctx.setLineDash([]);
+        }
+
+        // Draw nodes
+        if (showNodes) {
+            const base = currentMode==='tesseract' ? edgeThickness*3 : edgeThickness*2.5;
+            const r = Math.max(2, base * nodeSizeMultiplier);
+
+            if (glowEnabled) { ctx.shadowBlur = glowIntensity*1.5; ctx.shadowColor = nodeColor; }
+            else ctx.shadowBlur = 0;
+
+            for (const p of pts) {
+                let op = 1.0;
+                if (depthFogEnabled) op = Math.max(0.1, 1 - p.depth * 0.4);
+
+                ctx.fillStyle = `rgba(${rgbNode},${op})`;
+                drawNode(p.x, p.y, r);
+                ctx.fill();
+
+                if (nodeOutlineEnabled) {
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = `rgba(${rgbOutline},${op})`;
+                    ctx.lineWidth = nodeOutlineWidth;
+                    ctx.stroke();
+                    if (glowEnabled) { ctx.shadowBlur = glowIntensity*1.5; ctx.shadowColor = nodeColor; }
+                }
+            }
+        }
+    }
+
+    // ── Main Render Loop ──────────────────────────────────────────────────────
+    function animate() {
+        if (!isAnimating) return;
+
+        const width  = canvas.parentElement.clientWidth;
+        const height = canvas.parentElement.clientHeight;
+
+        // Background
+        if (trailsEnabled) {
+            const bgRgb = hexToRgb(bgColor);
+            ctx.fillStyle = `rgba(${bgRgb},0.78)`;
+            ctx.fillRect(0, 0, width, height);
+        } else {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        if (gridEnabled) drawGrid(width, height);
+
+        // Stars
+        if (starsEnabled) {
+            const t = Date.now() * 0.001;
+            for (const s of stars) {
+                const a = s.alpha * (0.65 + 0.35*Math.sin(t*s.speed + s.phase));
+                ctx.fillStyle = `rgba(255,255,255,${a})`;
+                ctx.beginPath();
+                ctx.arc(s.x*width, s.y*height, s.r, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        angle4D += autoSpeed;
+
+        // ── Compute layout for current total count ──
+        const total   = 1 + extraShapes;                  // 1 – 4
+        const layout  = LAYOUTS[total - 1];               // positions array
+        const sFactor = SCALE_FACTORS[total - 1];         // scale multiplier
+        const instScale = baseScale * sFactor;
+
+        // Spread unit: responsive to canvas size so shapes always fit
+        const spread = Math.min(width, height) * 0.23;
+
+        for (let inst = 0; inst < total; inst++) {
+            const [lx, ly] = layout[inst];
+            const cx = width  / 2 + lx * spread;
+            const cy = height / 2 + ly * spread;
+            const phaseAngle = angle4D + PHASE_OFFSETS[inst];
+            drawInstance(phaseAngle, cx, cy, instScale);
+        }
+
+        ctx.shadowBlur = 0;
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+</script>
+</body>
+</html>
